@@ -103,8 +103,8 @@ function BookingModal({ room, date, deviceId, onClose, onSuccess }) {
       return;
     }
 
-    if (weeklyLimit && weeklyLimit.remaining <= 0) {
-      setError('You have reached the maximum of 3 appointment requests per week.');
+    if (weeklyLimit && weeklyLimit.enabled && weeklyLimit.remaining <= 0) {
+      setError(`You have reached the maximum of ${weeklyLimit.maxRequests} appointment request(s) per week.`);
       return;
     }
 
@@ -140,28 +140,28 @@ function BookingModal({ room, date, deviceId, onClose, onSuccess }) {
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={e => e.stopPropagation()}>
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 rounded-t-xl">
+        <div className="bg-gradient-to-r from-blue-600 to-indigo-700 px-6 py-5 rounded-t-2xl">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-white font-bold text-lg">Book Appointment</h2>
-              <p className="text-blue-100 text-sm">{room}</p>
+              <p className="text-white/70 text-sm mt-0.5">{room}</p>
             </div>
-            <button onClick={onClose} className="text-white hover:bg-white/20 rounded-lg p-1 transition-colors">
-              <X size={20} />
+            <button onClick={onClose} className="text-white/80 hover:text-white hover:bg-white/20 rounded-xl p-1.5 transition-all">
+              <X size={18} />
             </button>
           </div>
         </div>
 
         <div className="p-6">
           {success ? (
-            <div className="text-center py-8">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="text-center py-10">
+              <div className="w-16 h-16 bg-green-100 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm">
                 <svg className="w-8 h-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Request Submitted!</h3>
-              <p className="text-gray-500 text-sm">Your appointment request has been submitted and is pending approval.</p>
+              <h3 className="text-lg font-bold text-gray-900 mb-2">Request Submitted!</h3>
+              <p className="text-gray-500 text-sm leading-relaxed">Your appointment request has been submitted<br/>and is pending admin approval.</p>
             </div>
           ) : (
             <>
@@ -171,8 +171,8 @@ function BookingModal({ room, date, deviceId, onClose, onSuccess }) {
                 <span className="text-sm font-medium text-gray-700">{formatDate(date)}</span>
               </div>
 
-              {/* Weekly Limit Warning */}
-              {weeklyLimit && weeklyLimit.remaining <= 1 && weeklyLimit.remaining > 0 && (
+              {/* Weekly Limit Warning (only when limit is enabled) */}
+              {weeklyLimit && weeklyLimit.enabled && weeklyLimit.remaining <= 1 && weeklyLimit.remaining > 0 && (
                 <div className="flex items-start gap-2 bg-yellow-50 border border-yellow-200 rounded-lg px-4 py-3 mb-4">
                   <AlertCircle size={18} className="text-yellow-600 mt-0.5 flex-shrink-0" />
                   <p className="text-yellow-800 text-sm">
@@ -181,11 +181,11 @@ function BookingModal({ room, date, deviceId, onClose, onSuccess }) {
                 </div>
               )}
 
-              {weeklyLimit && weeklyLimit.remaining <= 0 && (
+              {weeklyLimit && weeklyLimit.enabled && weeklyLimit.remaining <= 0 && (
                 <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-lg px-4 py-3 mb-4">
                   <AlertCircle size={18} className="text-red-600 mt-0.5 flex-shrink-0" />
                   <p className="text-red-800 text-sm">
-                    You have reached the maximum of <strong>3 requests per week</strong>. Please try again next week.
+                    You have reached the maximum of <strong>{weeklyLimit.maxRequests} request(s) per week</strong>. Please try again next week.
                   </p>
                 </div>
               )}
@@ -321,7 +321,7 @@ function BookingModal({ room, date, deviceId, onClose, onSuccess }) {
                   {/* Submit */}
                   <button
                     type="submit"
-                    disabled={submitting || (weeklyLimit && weeklyLimit.remaining <= 0)}
+                    disabled={submitting || (weeklyLimit && weeklyLimit.enabled && weeklyLimit.remaining <= 0)}
                     className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     {submitting ? (

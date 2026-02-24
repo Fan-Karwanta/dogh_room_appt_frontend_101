@@ -56,32 +56,42 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 relative">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-blue-50/30 relative">
       {/* Background Image */}
       <div
         className="fixed inset-0 z-0 bg-cover bg-center bg-no-repeat"
         style={{ backgroundImage: "url('/dogh_background.jpg')" }}
       >
-        <div className="absolute inset-0 bg-white/85"></div>
+        <div className="absolute inset-0 bg-white/90 backdrop-blur-[2px]"></div>
       </div>
       <div className="relative z-10">
       <Header
         onMyAppointments={() => setShowMyAppointments(true)}
       />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Info Banner */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-          <p className="text-blue-800 text-sm">
-            <strong>How to book:</strong> Click on any date in the calendar below to book a room. 
-            You can make up to <strong>3 appointment requests per week</strong>. 
-            Approved appointments are shown in green on the calendar.
-          </p>
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200/40 rounded-2xl p-5 mb-8 shadow-sm">
+          <div className="flex items-start gap-3">
+            <div className="p-2 bg-blue-100 rounded-lg flex-shrink-0">
+              <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-blue-900 text-sm font-semibold mb-1">How to book a room</p>
+              <p className="text-blue-700/80 text-sm leading-relaxed">
+                Select a date on any room calendar below to book an appointment. 
+                Approved bookings are shown in green with their full time duration. Click any booking to see details.
+              </p>
+            </div>
+          </div>
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <div className="flex flex-col items-center justify-center py-24">
+            <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+            <p className="text-gray-400 text-sm mt-4">Loading appointments...</p>
           </div>
         ) : (
           <div className="space-y-8">
@@ -127,10 +137,12 @@ function App() {
       )}
 
       {/* Footer */}
-      <footer className="bg-white/90 border-t border-gray-200 mt-12 py-6">
-        <div className="max-w-7xl mx-auto px-4 text-center text-gray-500 text-sm">
-          <p>&copy; {new Date().getFullYear()} Davao Occidental General Hospital. All rights reserved.</p>
-          <p className="mt-1">DOGH Room Appointment System</p>
+      <footer className="mt-16 py-8">
+        <div className="max-w-7xl mx-auto px-4 text-center">
+          <p className="text-gray-300 text-xs tracking-wide">
+            &copy; {new Date().getFullYear()} Davao Occidental General Hospital. All rights reserved.
+          </p>
+          <p className="text-gray-300/70 text-xs mt-1">DOGH Room Appointment System</p>
         </div>
       </footer>
       </div>
