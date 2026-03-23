@@ -124,6 +124,8 @@ function App() {
         <AppointmentDetailModal
           appointment={selectedAppointment}
           onClose={() => setSelectedAppointment(null)}
+          deviceId={deviceId}
+          onRefresh={fetchAppointments}
         />
       )}
 

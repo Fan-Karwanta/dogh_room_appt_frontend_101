@@ -16,5 +16,6 @@ export const createAppointment = (data) => api.post('/appointments', data);
 export const getAppointmentById = (id) => api.get(`/appointments/${id}`);
 export const checkWeeklyLimit = (deviceId) => api.get(`/appointments/check-limit/${deviceId}`);
 export const getMyAppointments = (deviceId) => api.get('/appointments', { params: { deviceId } });
+export const cancelMyAppointment = (id, deviceId) => api.patch(`/appointments/${id}/cancel`, { deviceId });
 
 export default api;
