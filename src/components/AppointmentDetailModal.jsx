@@ -1,14 +1,44 @@
 import React, { useState } from 'react';
-import { X, Calendar, Clock, User, FileText, MapPin, Ban, Loader2, AlertTriangle, MessageCircle } from 'lucide-react';
+import { X, Ban, Loader2 } from 'lucide-react';
 import { cancelMyAppointment } from '../api';
+import { ROOM_LOGOS } from '../utils/rooms';
+
+const STATUS = {
+  approved: { label: 'Approved', classes: 'bg-green-50 text-green-700 border-green-200', dot: 'bg-green-500' },
+  pending: { label: 'Pending', classes: 'bg-amber-50 text-amber-700 border-amber-200', dot: 'bg-amber-400' },
+  declined: { label: 'Declined', classes: 'bg-red-50 text-red-700 border-red-200', dot: 'bg-red-500' },
+  cancelled: { label: 'Cancelled', classes: 'bg-gray-100 text-gray-500 border-gray-200', dot: 'bg-gray-400' },
+};
+
+const timeToMinutes = (timeStr) => {
+  const match = timeStr.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (!match) return 0;
+  let hours = parseInt(match[1]);
+  const minutes = parseInt(match[2]);
+  const period = match[3].toUpperCase();
+  if (period === 'PM' && hours !== 12) hours += 12;
+  if (period === 'AM' && hours === 12) hours = 0;
+  return hours * 60 + minutes;
+};
+
+const formatDuration = (start, end) => {
+  const mins = timeToMinutes(end) - timeToMinutes(start);
+  if (mins <= 0) return null;
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  if (h && m) return `${h} hr ${m} min`;
+  if (h) return h === 1 ? '1 hour' : `${h} hours`;
+  return `${m} min`;
+};
 
 function AppointmentDetailModal({ appointment, onClose, deviceId, onRefresh }) {
   const [cancelling, setCancelling] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [cancelError, setCancelError] = useState('');
+
   const formatDate = (dateStr) => {
     const d = new Date(dateStr + 'T00:00:00');
-    return d.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
   };
 
   const formatDateTime = (dateStr) => {
@@ -18,16 +48,10 @@ function AppointmentDetailModal({ appointment, onClose, deviceId, onRefresh }) {
     });
   };
 
-  const statusConfig = {
-    approved: { bg: 'bg-green-100', text: 'text-green-800', border: 'border-green-200', dot: 'bg-green-500', label: 'Approved' },
-    pending: { bg: 'bg-yellow-100', text: 'text-yellow-800', border: 'border-yellow-200', dot: 'bg-yellow-500', label: 'Pending' },
-    declined: { bg: 'bg-red-100', text: 'text-red-800', border: 'border-red-200', dot: 'bg-red-500', label: 'Declined' },
-    cancelled: { bg: 'bg-orange-100', text: 'text-orange-800', border: 'border-orange-200', dot: 'bg-orange-500', label: 'Cancelled' }
-  };
-
-  const status = statusConfig[appointment.status] || statusConfig.pending;
-
+  const status = STATUS[appointment.status] || STATUS.pending;
   const isOwner = deviceId && appointment.deviceId === deviceId;
+  const duration = formatDuration(appointment.timeStart, appointment.timeEnd);
+  const logo = ROOM_LOGOS[appointment.room];
 
   const handleCancel = async () => {
     try {
@@ -47,165 +71,138 @@ function AppointmentDetailModal({ appointment, onClose, deviceId, onRefresh }) {
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={e => e.stopPropagation()}>
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-indigo-700 px-6 py-5 rounded-t-2xl">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-white font-bold text-lg">Appointment Details</h2>
-            <button onClick={onClose} className="text-white/80 hover:text-white hover:bg-white/20 rounded-xl p-1.5 transition-all">
-              <X size={18} />
-            </button>
-          </div>
-          {/* Prominent Time Duration Display */}
-          <div className="bg-white/15 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-                <Clock size={20} className="text-white" />
-              </div>
-              <div>
-                <p className="text-white/70 text-xs font-medium">Duration</p>
-                <p className="text-white font-bold text-lg tracking-tight">
-                  {appointment.timeStart} — {appointment.timeEnd}
-                </p>
-              </div>
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            {logo && (
+              <img
+                src={logo}
+                alt=""
+                className="w-10 h-10 rounded-lg object-contain bg-white ring-1 ring-gray-200 flex-shrink-0"
+              />
+            )}
+            <div className="min-w-0">
+              <h2 className="text-sm font-semibold text-gray-900 truncate">{appointment.room}</h2>
+              <p className="text-xs text-gray-400 mt-0.5">{formatDate(appointment.date)}</p>
             </div>
           </div>
-        </div>
-
-        <div className="p-6 space-y-4">
-          {/* Status Badge */}
-          <div className="flex items-center gap-2">
-            <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold capitalize border ${status.bg} ${status.text} ${status.border}`}>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold border ${status.classes}`}>
               <span className={`w-1.5 h-1.5 rounded-full ${status.dot}`}></span>
               {status.label}
             </span>
-          </div>
-
-          {/* Details Grid */}
-          <div className="space-y-2.5">
-            <div className="flex items-start gap-3 p-3.5 bg-gray-50 rounded-xl border border-gray-100">
-              <div className="p-1.5 bg-blue-50 rounded-lg">
-                <MapPin size={16} className="text-blue-600" />
-              </div>
-              <div>
-                <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">Room</p>
-                <p className="text-sm text-gray-900 font-medium">{appointment.room}</p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3 p-3.5 bg-gray-50 rounded-xl border border-gray-100">
-              <div className="p-1.5 bg-blue-50 rounded-lg">
-                <User size={16} className="text-blue-600" />
-              </div>
-              <div>
-                <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">Booked By</p>
-                <p className="text-sm text-gray-900 font-medium">{appointment.bookerName}</p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3 p-3.5 bg-gray-50 rounded-xl border border-gray-100">
-              <div className="p-1.5 bg-blue-50 rounded-lg">
-                <Calendar size={16} className="text-blue-600" />
-              </div>
-              <div>
-                <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">Date</p>
-                <p className="text-sm text-gray-900 font-medium">{formatDate(appointment.date)}</p>
-              </div>
-            </div>
-
-            {/* Reason - Prominent Display */}
-            <div className="p-4 bg-blue-50/50 rounded-xl border border-blue-100">
-              <div className="flex items-center gap-2 mb-2">
-                <FileText size={14} className="text-blue-600" />
-                <p className="text-[10px] text-blue-600 font-bold uppercase tracking-wider">Reason / Purpose</p>
-              </div>
-              <p className="text-sm text-gray-800 leading-relaxed">{appointment.reason}</p>
-            </div>
-          </div>
-
-          {/* Cancellation Details (for cancelled appointments) */}
-          {appointment.status === 'cancelled' && (
-            <div className="p-4 bg-orange-50 rounded-xl border border-orange-200">
-              <div className="flex items-center gap-2 mb-2">
-                <Ban size={14} className="text-orange-600" />
-                <p className="text-[10px] text-orange-600 font-bold uppercase tracking-wider">Cancellation Details</p>
-              </div>
-              {appointment.cancelledAt && (
-                <p className="text-xs text-gray-600 mb-1">
-                  <span className="text-gray-400">Cancelled: </span>{formatDateTime(appointment.cancelledAt)}
-                </p>
-              )}
-              {appointment.cancellationReason && (
-                <p className="text-xs text-gray-600">
-                  <span className="text-gray-400">Reason: </span>{appointment.cancellationReason}
-                </p>
-              )}
-            </div>
-          )}
-
-          {/* Admin notes (if any) */}
-          {appointment.adminNotes && (
-            <div className="p-4 bg-amber-50/50 rounded-xl border border-amber-100">
-              <div className="flex items-center gap-2 mb-2">
-                <MessageCircle size={14} className="text-amber-600" />
-                <p className="text-[10px] text-amber-600 font-bold uppercase tracking-wider">Admin Notes</p>
-              </div>
-              <p className="text-sm text-gray-800 leading-relaxed">{appointment.adminNotes}</p>
-            </div>
-          )}
-
-          {/* Cancel button for pending appointments owned by this user */}
-          {isOwner && appointment.status === 'pending' && !showCancelConfirm && (
             <button
-              onClick={() => setShowCancelConfirm(true)}
-              className="w-full flex items-center justify-center gap-2 bg-orange-50 text-orange-700 py-3 rounded-xl font-semibold hover:bg-orange-100 transition-colors text-sm border border-orange-200"
+              onClick={onClose}
+              aria-label="Close"
+              className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
             >
-              <Ban size={16} />
-              Cancel This Request
+              <X size={16} />
             </button>
+          </div>
+        </div>
+
+        <div className="px-6 py-5">
+          {/* Time */}
+          <div className="mb-5">
+            <p className="text-2xl font-semibold tracking-tight text-gray-900 tabular-nums">
+              {appointment.timeStart} – {appointment.timeEnd}
+            </p>
+            {duration && (
+              <p className="text-sm text-gray-400 mt-1">{duration}</p>
+            )}
+          </div>
+
+          {/* Detail rows */}
+          <dl className="border-y border-gray-100 divide-y divide-gray-100 text-sm">
+            <div className="flex items-baseline py-2.5">
+              <dt className="w-28 flex-shrink-0 text-gray-400">Booked by</dt>
+              <dd className="text-gray-800 font-medium truncate">{appointment.bookerName}</dd>
+            </div>
+            {appointment.createdAt && (
+              <div className="flex items-baseline py-2.5">
+                <dt className="w-28 flex-shrink-0 text-gray-400">Requested</dt>
+                <dd className="text-gray-600">{formatDateTime(appointment.createdAt)}</dd>
+              </div>
+            )}
+          </dl>
+
+          {/* Purpose */}
+          <div className="mt-5">
+            <p className="text-xs text-gray-400 mb-1.5">Purpose</p>
+            <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">{appointment.reason}</p>
+          </div>
+
+          {/* Admin notes */}
+          {appointment.adminNotes && (
+            <div className="mt-4 border-l-2 border-amber-400 pl-3">
+              <p className="text-xs text-gray-400 mb-1">Note from admin</p>
+              <p className="text-sm text-gray-700 leading-relaxed">{appointment.adminNotes}</p>
+            </div>
           )}
 
-          {/* Cancel confirmation */}
-          {showCancelConfirm && (
-            <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 space-y-3">
-              <div className="flex items-center gap-2 text-orange-700">
-                <AlertTriangle size={18} />
-                <p className="text-sm font-semibold">Cancel this appointment?</p>
-              </div>
-              <p className="text-xs text-orange-600">This action cannot be undone. The request will be withdrawn.</p>
-              {cancelError && (
-                <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{cancelError}</p>
+          {/* Cancellation details */}
+          {appointment.status === 'cancelled' && (appointment.cancelledAt || appointment.cancellationReason) && (
+            <div className="mt-4 border-l-2 border-gray-300 pl-3">
+              <p className="text-xs text-gray-400 mb-1">
+                Cancelled{appointment.cancelledAt ? ` on ${formatDateTime(appointment.cancelledAt)}` : ''}
+              </p>
+              {appointment.cancellationReason && (
+                <p className="text-sm text-gray-600">{appointment.cancellationReason}</p>
               )}
-              <div className="flex gap-2">
+            </div>
+          )}
+
+          {/* Cancel flow for own pending requests */}
+          {isOwner && appointment.status === 'pending' && !showCancelConfirm && (
+            <div className="mt-6">
+              <p className="text-xs text-amber-600 mb-3">
+                Awaiting admin approval — you can still withdraw this request.
+              </p>
+              <button
+                onClick={() => setShowCancelConfirm(true)}
+                className="w-full flex items-center justify-center gap-2 border border-red-200 text-red-600 py-2.5 rounded-lg font-medium hover:bg-red-50 transition-colors text-sm"
+              >
+                <Ban size={15} />
+                Cancel this request
+              </button>
+            </div>
+          )}
+
+          {showCancelConfirm && (
+            <div className="mt-6 border border-red-200 rounded-lg p-4">
+              <p className="text-sm font-semibold text-gray-900">Cancel this appointment?</p>
+              <p className="text-xs text-gray-500 mt-1">This can't be undone — the request will be withdrawn.</p>
+              {cancelError && (
+                <p className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-md px-3 py-2 mt-3">{cancelError}</p>
+              )}
+              <div className="flex gap-2 mt-4">
                 <button
                   onClick={handleCancel}
                   disabled={cancelling}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm font-medium disabled:opacity-50"
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium disabled:opacity-50"
                 >
-                  {cancelling ? <Loader2 size={16} className="animate-spin" /> : <Ban size={16} />}
-                  Yes, Cancel
+                  {cancelling ? <Loader2 size={15} className="animate-spin" /> : null}
+                  Yes, cancel it
                 </button>
                 <button
                   onClick={() => { setShowCancelConfirm(false); setCancelError(''); }}
-                  className="flex-1 px-4 py-2.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors text-sm font-medium"
+                  className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium"
                 >
-                  Keep It
+                  Keep it
                 </button>
               </div>
             </div>
           )}
 
-          {/* Info note for approved/declined — contact admin */}
+          {/* Note for owners of decided appointments */}
           {isOwner && (appointment.status === 'approved' || appointment.status === 'declined') && (
-            <div className="flex items-start gap-2.5 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3">
-              <MessageCircle size={16} className="text-blue-500 mt-0.5 flex-shrink-0" />
-              <p className="text-xs text-blue-700 leading-relaxed">
-                Need to cancel or modify this appointment? Please <strong>contact the administrator</strong> for assistance.
-              </p>
-            </div>
+            <p className="mt-6 text-xs text-gray-400 leading-relaxed border-t border-gray-100 pt-4">
+              Need to change or cancel this appointment? Please contact the administrator.
+            </p>
           )}
 
           <button
             onClick={onClose}
-            className="w-full bg-gray-100 text-gray-700 py-3 rounded-xl font-semibold hover:bg-gray-200 transition-colors text-sm"
+            className="w-full mt-6 bg-gray-100 text-gray-700 py-2.5 rounded-lg font-medium hover:bg-gray-200 transition-colors text-sm"
           >
             Close
           </button>
